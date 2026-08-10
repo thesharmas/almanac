@@ -193,6 +193,73 @@ no inbound path is opened to a machine that deliberately has no external IP.
 The VM writes its result to a *second* bucket it cannot publish releases from,
 so compromising the customer-facing host gives no route to shipping code.
 
+## What's next
+
+Not scheduled, and not promises. The scoping notes are the useful part — each
+one is what you would actually hit on day one.
+
+- **Other clouds, AWS first.** The application is already portable: a container
+  plus environment variables. What is GCP-shaped is `infra/` — Secret Manager,
+  GCS, IAP SSH, Cloud NAT, Workload Identity Federation. Every AWS parallel
+  exists (Secrets Manager, S3, SSM Session Manager, NAT Gateway, OIDC to an IAM
+  role), and `infra/env.sh` already reads everything from `deployment.yaml`, so
+  the shape is an `aws:` block beside `gcp:`. Bounded work, no open design
+  questions.
+
+- **Other warehouses.** `WarehouseAdapter` is one method, so BigQuery, Postgres,
+  Databricks and Redshift are each a file. The harder half is dialect, and there
+  are two concrete blockers today: the contract checker requires
+  `CURRENT_DATE()` **with parentheses** (Postgres wants it bare), and both
+  archetypes use Snowflake's `TO_VARCHAR`. So the real shape is *adapter +
+  per-dialect archetypes + a dialect-aware contract check* — without the last
+  two, the first Postgres adopter meets a confusing build failure.
+
+- **A local demo.** Today you need a real warehouse *and* a Slack app before you
+  see anything work. A seeded fixture database plus a local Gateway would let
+  someone evaluate the whole thing before committing to either. For a bootstrap
+  toolkit this is probably the highest-value item here.
+
+- **End-to-end tests.** The 189 tests are all unit-level. Nothing automatically
+  proves the whole path — Slack in, tenant resolved, SQL rendered, rows shaped,
+  answer out — actually works, because that needs a live warehouse and Gateway.
+  `/almanac-connect` and `/almanac-go-live` cover the same ground interactively,
+  which is the right shape for a toolkit but is not a regression test.
+
+- **`/almanac-check-digest`.** Nothing verifies a digest was *correct* — only
+  that it posted. A skill that reads back the last one and ties its numbers to a
+  control query would close that.
+
+- **Rate limiting and a query budget.** `rate_anomaly` exists in the escalation
+  enum and nothing ever emits it. Nothing bounds warehouse spend either: a
+  channel repeatedly asking `all_time` on a large tenant simply costs money.
+
+- **A period-comparison archetype.** *"Is that up or down?"* is the most natural
+  follow-up to any digest, and there is no report shape for period-over-period.
+  Cheap — a third archetype, no platform change.
+
+- **A worked single-tenant example.** `tenancy.mode: single` is supported and
+  tested but has no example config, and "internal company metrics bot" is
+  probably a common way in.
+
+### Needs a design decision first
+
+These are not scheduled work. Each changes a property the current design relies
+on, so the decision comes before the code.
+
+- **Other chat surfaces** (Teams, Discord, Google Chat). Not simply another
+  channel plugin: Socket Mode is *why* the host can run with no external IP and
+  no inbound path. Teams needs an inbound webhook, which trades that away. The
+  exposure model has to be decided before the adapter is worth writing.
+
+- **Column-level entitlement.** Today a channel sees a whole report or none of
+  it. "This channel sees revenue but not margin" means the tenant map carries
+  more than an id, and the capability list, the prompts and the shaper all have
+  to agree about it — a design change, not a config one.
+
+- **Secret rotation.** `infra/05-secrets.sh` adds versions, but there is no
+  rotation runbook and no expiry story for the Slack tokens or the warehouse
+  key.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
