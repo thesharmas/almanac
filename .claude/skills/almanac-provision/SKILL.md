@@ -130,6 +130,15 @@ repo's Actions **variables** — say that they are variables, not secrets, and
 that neither is a credential: that is the point of Workload Identity
 Federation.
 
+Check the workflows are actually installed before moving on:
+
+```bash
+ls .github/workflows/
+```
+
+If they are not there, copy them from `infra/github/` — they ship as templates,
+so a clone that skipped that step in `/almanac-init` has no CI at all.
+
 ### 08 — the poller (VM)
 
 After this, merging to `main` deploys. Say that plainly, and check branch

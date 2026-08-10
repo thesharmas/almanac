@@ -1,5 +1,11 @@
 name: check
 
+# A TEMPLATE — copy it to .github/workflows/ in your deployment repo. See
+# infra/github/README.md.
+#
+# Make it a REQUIRED STATUS CHECK on `main`. Merging deploys, so this is the
+# only thing standing between a broken catalog and a customer-facing host.
+
 on:
   pull_request:
   push:

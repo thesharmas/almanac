@@ -171,6 +171,11 @@ Node 22.22.3+, 24.15.0+ or 25.9.0+ — pinned in `package.json` and
 
 ## Shipping
 
+The two GitHub Actions workflows ship as **templates** in
+[`infra/github/`](infra/github/README.md) — `/almanac-init` installs them into
+your repo. They are not live here, because the toolkit repo has no deployment
+to build.
+
 **Merging to `main` deploys.** There is no promote step, so the PR review is
 the gate — turn on branch protection before you turn on the poller.
 

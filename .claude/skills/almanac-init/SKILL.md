@@ -187,7 +187,29 @@ here is that `deployment.yaml` itself validates.
 Show them the file and walk the three fields that matter most: the predicate,
 the timezone, and the warehouse role.
 
-## Step 10 — A first report, against their own data
+## Step 10 — Install the CI workflows
+
+Almanac ships GitHub Actions as **templates** rather than live workflows,
+because the toolkit repo has no deployment to build. Their repo does, so offer
+to install them:
+
+```bash
+mkdir -p .github/workflows
+cp infra/github/ci.yml      .github/workflows/
+cp infra/github/release.yml .github/workflows/
+```
+
+Nothing needs editing — every deployment-specific value is read from
+`deployment.yaml` at run time. `release.yml` also needs two repository
+variables, which `infra/07-ci-setup.sh` prints later.
+
+Say the thing that matters while you are here: **merging to `main` deploys, so
+PR review is the gate.** Branch protection is not optional — require a review,
+require `check`, keep history linear, and no direct pushes. Enabling the deploy
+poller without that means any push reaches a host reading production data with
+nothing having reviewed it.
+
+## Step 11 — A first report, against their own data
 
 **Do not stop at a valid config.** Offer to draft their first report now.
 

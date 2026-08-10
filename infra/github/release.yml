@@ -5,13 +5,13 @@ name: release
 # reads production data. Require a review, require the `check` workflow, and
 # keep history linear.
 #
-# THIS WORKFLOW DOES NOTHING IN THE TOOLKIT REPO, BY DESIGN. Almanac is cloned
-# and filled in; `deployment.yaml` is gitignored, so a toolkit checkout has no
-# deployment to release. The gate step below detects that and skips the rest,
-# so the run goes GREEN rather than red — a permanently-failing workflow is
-# worse than no workflow, because it teaches you to ignore the Actions tab.
+# A TEMPLATE — copy it to .github/workflows/ in your deployment repo. See
+# infra/github/README.md. It is deliberately not installed in the Almanac
+# toolkit repo, which has no deployment to release.
 #
-# It comes alive in your clone the moment `deployment.yaml` is committed.
+# The gate step below still skips cleanly when `deployment.yaml` is absent, so
+# installing this before /almanac-init has finished is harmless: the run goes
+# green having done nothing, rather than red.
 on:
   push:
     branches: [main]

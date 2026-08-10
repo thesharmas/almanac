@@ -33,6 +33,11 @@ Then, in normal operation:
 | `slack-lookup.sh` | laptop | Resolves a channel by name; verifies membership by id |
 | `leakcheck.mjs` | laptop / CI | Refuses to let a live identifier into a tracked file |
 
+`github/` holds the two GitHub Actions workflows as **templates**, to copy into
+`.github/workflows/` in your own repo — see [github/README.md](github/README.md).
+They are not live here: the toolkit repo has no deployment to build, so a
+`release` workflow in it could only ever be inert or red.
+
 ## Five things that are easy to get wrong
 
 **Secret access is granted per secret, never project-wide.** A project-level
