@@ -4,6 +4,11 @@ Two shapes. Copy one into `reports/<your_id>/`, rename it, and fill in the SQL
 — `/almanac-add-report` does this as an interview and, more usefully, runs the
 result against your warehouse and shows you the rows.
 
+**A report is what the bot can *answer*, not what it posts.** `digest.md` is
+only needed if the report will also be delivered on a schedule; a report with
+just `report.yaml` and `query.sql` is complete and immediately askable in every
+channel entitled to it. Most reports never need a digest.
+
 `_archetypes/` is skipped by the loader (any directory starting with `_` is),
 so these templates never have to satisfy the contract checker. They are not
 reports.

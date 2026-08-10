@@ -18,6 +18,13 @@
 # `reports` is entitlement (what they may ask for). `schedules` is what arrives
 # unprompted. A report may be entitled without being scheduled; never the
 # reverse — the build enforces this.
+#
+# SCHEDULES ARE OPTIONAL, AND OFTEN THE RIGHT ANSWER IS NOT TO HAVE ONE. A
+# stanza with `reports:` and no `schedules:` is a complete deployment: an
+# on-demand analytics bot that posts nothing unprompted and answers whenever
+# someone asks. The `ondemand` stanza at the bottom is that shape. Start there
+# if you are not sure — an unprompted daily post is a commitment to a channel,
+# and it is much easier to add one later than to withdraw one.
 
 # ---------------------------------------------------------------------------
 # Staging. Internal channels only.
@@ -73,3 +80,19 @@ northwind:
       report: aggregate_by_entity
       dateRange: today
       cron: "0 17 * * 1-5"
+
+# A tenant with NO schedule. This is a complete, useful deployment — it just
+# never speaks first.
+#
+# Everything the channel can do, it does on request: any entitled report, any
+# window that report supports, with follow-ups resolving in the thread. Nothing
+# is posted unprompted, so the channel stays quiet until someone asks.
+#
+# For a lot of teams this is the right starting shape. A daily post is a
+# commitment — people notice when it stops, and withdrawing one reads as a
+# feature being removed. Adding a schedule later is a one-line PR.
+ondemand:
+  channelId: C00000ONDMD
+  tenantId: "00000000-0000-0000-0000-000000000003"
+  displayName: Fabrikam Inc
+  reports: [aggregate_by_entity, detail_by_entity]

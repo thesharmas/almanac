@@ -1,8 +1,19 @@
 # Almanac
 
 A bootstrap toolkit for **channel-scoped analytics bots**: an assistant that
-answers questions about your warehouse data in a Slack channel, and posts a
-scheduled digest into that channel unprompted.
+answers questions about your warehouse data in a Slack channel — and, if you
+want one, posts a scheduled digest into that channel unprompted.
+
+The everyday use is people asking:
+
+```
+@almanac  how much did we do last month?
+@almanac  which of those was Contoso?
+@almanac  and the month before?
+```
+
+The digest is one feature on top of that, not the point of it. A tenant with
+reports and no schedule is a complete deployment.
 
 Almanac is not a product you run. It is a repo you clone, an interview you sit
 through, and a set of Claude Code skills that turn your answers into a deployed
@@ -77,6 +88,27 @@ All of the above, and why each part resists the obvious simplification, is in
 **[docs/why.md](docs/why.md)** — the most useful thing in this repo and the
 easiest to skip.
 
+## What it can answer
+
+Every report a channel is entitled to, across every window that report
+supports, with follow-ups resolving in-thread. Adding a report widens what the
+bot can answer **without touching a prompt** — the capability list and the
+"what can you do" reply are generated from the catalog, so a new report shows
+up in every entitled channel the day it ships.
+
+It is **not text-to-SQL**, deliberately. The model picks a report id and a date
+range from closed enums; a new capability is a reviewed SQL template, not a
+generated query. So it answers what the catalog covers and says so plainly when
+a question falls outside it, rather than offering an adjacent number as though
+it were the answer. That is a real limitation, and
+[why.md §2](docs/why.md) is the argument for accepting it.
+
+Growing the catalog is the loop: out-of-scope questions escalate with reason
+`out_of_scope`, which is demand signal in the customer's own words. Read it,
+then run `/almanac-add-report`. The bot gets more useful over time without any
+control being loosened — widening the catalog and widening the attack surface
+are, by construction, different actions.
+
 ## How it is configured
 
 Three catalogs, and nothing is configured in more than one:
@@ -84,8 +116,8 @@ Three catalogs, and nothing is configured in more than one:
 | File | What it says |
 |---|---|
 | `deployment.yaml` | The org: branding, cloud, Slack, warehouse, tenancy model, domain vocabulary |
-| `reports/<id>/` | What the bot can compute — `report.yaml`, `query.sql`, `digest.md` |
-| `tenants.yaml` | Who gets what, and when |
+| `reports/<id>/` | What the bot can compute — `report.yaml`, `query.sql`, and `digest.md` only if it will be scheduled |
+| `tenants.yaml` | Who gets what (`reports:`), and when (`schedules:`, optional) |
 
 A generator turns the three into the Gateway config, the agent prompts, the
 tenant map and the scheduled jobs. Nothing about a tenant is configured in more

@@ -130,9 +130,19 @@ Watch for two versions of the same report in the selection. The build will
 reject it, but explaining it here is better than a failed build: their prompt
 would offer both under the same title and the model would pick arbitrarily.
 
-## Step 5 — Schedule
+## Step 5 — Schedule, or deliberately not
 
-Ask whether they want an unprompted digest, and when.
+Ask whether they want an unprompted digest — and present **no schedule as a
+real option, not a fallback.**
+
+A stanza with entitlements and no schedule is a complete deployment: the
+channel answers whenever anyone asks, across every entitled report and every
+window it supports, and posts nothing on its own. For a lot of tenants that is
+the right shape, and it is much easier to add a schedule later than to withdraw
+one. An unprompted daily post is a commitment — people notice when it stops,
+and removing it reads as a feature being taken away.
+
+If they do want one:
 
 - Only reports with a `digest.md` can be scheduled.
 - The window must be one the report supports, and cannot be `all_time` or

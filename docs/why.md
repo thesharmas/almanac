@@ -157,6 +157,68 @@ to have.
 
 ---
 
+## The digest is one feature, not the system
+
+The name suggests a periodical, and the archetype ships with a `digest.md`. Both
+undersell what this is.
+
+**A tenant with `reports:` and no `schedules:` is a complete deployment.**
+Nothing is posted unprompted; people ask questions in the channel and get
+answers. For most organisations that is the majority of the value, and the
+digest is an overlay on top of it.
+
+The two paths are the same machinery. A scheduled turn and a typed question run
+through the same agent, the same tool, the same catalog and the same rules —
+which is deliberate, because a number has to mean the same thing whether it
+arrived on a schedule or because somebody asked. What differs is only who
+started the turn.
+
+### What "asking" actually covers
+
+Every report the tenant is entitled to, across every window that report
+supports, with follow-ups resolving in-thread:
+
+> *"how much last month?"* → *"which of those was Contoso?"* → *"and the month
+> before?"* → *"show me the individual ones"*
+
+Each is a tool call with a report id and a window from a closed enum. The
+follow-ups work because the earlier answer is in the thread and the model still
+holds the rows.
+
+**Adding a report widens what the bot can answer without touching a prompt.**
+The capability list, the "what can you do" answer and the worked example are all
+generated from the catalog, so a new report appears in every entitled tenant's
+prompt the day it ships. That is why §4 insists the catalog is the single
+source: the config *is* the product surface.
+
+### What it is not, deliberately
+
+It is not text-to-SQL, and it will not become one by accident.
+
+It answers what the catalog covers and is built to say so plainly when a
+question falls outside it — no improvising, no adjacent number offered as
+though it were the answer. §2 is the whole argument: the model picks an id and
+a window from closed enums, and a new capability is a reviewed template rather
+than a generated query.
+
+That is a real limitation and worth stating to whoever is adopting this. If you
+want arbitrary questions over arbitrary tables, you want a different system with
+a different risk posture — one where a wrong join is a wrong answer to a
+customer rather than a failed build.
+
+### Growing it is the loop
+
+Out-of-scope questions escalate with reason `out_of_scope`, and that stream is
+**demand signal, not noise**. Reviewing it tells you which report to build next,
+in the customer's own words, with a count attached.
+
+So the working rhythm is: ship a small catalog, watch what people ask for that
+it cannot answer, and run `/almanac-add-report`. The bot gets more generally
+useful over time without any control being loosened — because widening the
+catalog and widening the attack surface are, by construction, different actions.
+
+---
+
 ## 1. One agent, one channel, one tenant
 
 Each tenant gets its own agent, bound 1:1 to one Slack channel. The binding is
