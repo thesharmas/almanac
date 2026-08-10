@@ -9,3 +9,7 @@ dist/
 deployment.yaml
 tenants.yaml
 ops.yaml
+
+# Build output
+dist/
+generated/

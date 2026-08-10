@@ -1,0 +1,28 @@
+id: detail_by_entity
+title: Fundings for a business
+description: The individual fundings behind one of your businesses, for a business you name, over any period up to a year.
+
+# NOTE the absence of `all_time`. At row grain a wide window truncates long
+# before it runs out of days, so offering `all_time` here would return an
+# incomplete list to someone who asked for everything. Totals would stay exact
+# and the model is told to say the breakdown is partial — but the honest answer
+# to "show me everything" at this grain is a narrower window, or the aggregate
+# report.
+dateRanges: [today, last_7d, last_30d, last_90d, mtd, qtd, ytd, prior_month, last_n_days]
+
+maxDays: 366
+
+# One row per record, so this is the report that actually truncates. Measure
+# your busiest entity over your widest window before settling on a number:
+# /almanac-add-report will run that query for you.
+rowCap: 1500
+
+columns:
+  - { name: EVENT_DATE, label: Date, format: date }
+  - { name: RECORD_ID, label: Reference, format: id }
+  - { name: ENTITY_NAME, label: Business, format: text }
+  - { name: AMOUNT_CENTS, label: Amount, format: cents }
+
+totals:
+  - { name: AMOUNT_CENTS, as: amount, agg: sum }
+  - { name: RECORD_ID, as: records, agg: count_distinct }

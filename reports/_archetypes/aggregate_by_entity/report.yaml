@@ -1,0 +1,38 @@
+id: aggregate_by_entity
+title: Totals by business
+# This description is customer-facing: it is compiled verbatim into the agent's
+# capability list and into the "what can you do" answer. Write it the way a
+# customer would want it explained, not the way you would describe the query.
+description: How much was funded for each of your businesses over any period, from a single day to all time, with totals.
+
+# Every window this report is correct for. The aggregate shape is the reason
+# `all_time` is safe to offer here: the GROUP BY happens in SQL, so the row
+# count is bounded by the number of entities rather than by the window.
+dateRanges:
+  [today, last_7d, last_30d, last_90d, mtd, qtd, ytd, prior_month, last_n_days, all_time]
+
+# A correctness bound on `last_n_days`, not a truncation bound.
+maxDays: 366
+
+# One row per entity, so this only truncates for a tenant with more than 500
+# distinct entities in the window. Check yours before shipping.
+rowCap: 500
+
+columns:
+  - { name: ENTITY_NAME, label: Business, format: text }
+  # `id` is never parsed as a number — external ids routinely overflow int64,
+  # and a silently truncated id still looks plausible.
+  - { name: ENTITY_ID, label: Business ID, format: id }
+  - { name: RECORDS, label: Fundings, format: number }
+  # `cents` is converted to major units by the shaper, so the model never
+  # divides by 100 in a customer-facing money message. It does not reliably do
+  # that arithmetic, and a 100x error reads as a real number.
+  - { name: AMOUNT_CENTS, label: Amount, format: cents }
+
+# Computed in SQL over the FULL range, so they stay exact even when rows are
+# capped. This is what lets the model state a headline without summing
+# anything.
+totals:
+  - { name: AMOUNT_CENTS, as: amount, agg: sum }
+  - { name: RECORDS, as: records, agg: sum }
+  - { name: ENTITY_NAME, as: entities, agg: count_distinct }

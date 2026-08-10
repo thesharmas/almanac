@@ -1,0 +1,127 @@
+# deployment.yaml — the org-level catalog.
+#
+# Copy to `deployment.yaml` and fill in, or let `/almanac-init` write it by
+# interview. The real file is gitignored: it names your project, your warehouse
+# and your channels, and none of that belongs in a shared toolkit repo.
+#
+# This example describes a fictional lending platform so the vocabulary fields
+# have something concrete in them. Replace all of it.
+
+name: acme-almanac
+
+branding:
+  botName: Almanac
+  org: Acme Corp
+  # Completes "You are <botName>, ..." in every generated prompt.
+  persona: an automated assistant from Acme Corp
+
+tenancy:
+  # multi  — several tenants, one agent and one channel each. Every isolation
+  #          control is live.
+  # single — one dataset, no per-tenant scoping. Only for an internal
+  #          deployment where every reader is entitled to everything.
+  mode: multi
+
+  # THE TENANT PREDICATE. Required verbatim in every report template.
+  #
+  # This one line is what separates one customer's data from everyone else's.
+  # The contract checker requires it character-for-character in every
+  # query.sql, so there is exactly one reviewed spelling and a reviewer diffing
+  # a new report knows precisely what to look for.
+  #
+  # Do not turn this into a regex or a list of accepted forms. The moment
+  # several spellings are legal, "every report is scoped the same way" stops
+  # being a fact the build can check.
+  predicate: "f.TENANT_ID = {{tenant_id}}"
+
+  # How a tenant id is shaped. The literal encoder validates against this
+  # before quoting a value into SQL, so it is a gate, not a hint.
+  # uuid | integer | slug
+  idFormat: uuid
+
+  # Optional. The one permitted form of a drill-down filter, for reports that
+  # let a customer name one entity. `{{entity}}` is the only placeholder
+  # carrying a value the *model* chose — it is safe because the tenant
+  # predicate is still mandatory and ANDed, so it can only narrow a result that
+  # is already scoped to one tenant.
+  entityPredicate: "UPPER(f.ENTITY_NAME) LIKE UPPER({{entity}})"
+
+# The domain vocabulary, injected into generated prompts and digests.
+#
+# Only vocabulary. Domain *reasoning* — a rule that picks between two words
+# based on the numbers — belongs in the report's own digest.md, next to the
+# totals it branches on.
+lexicon:
+  entity: business
+  entityPlural: businesses
+  measure: funding
+  measurePlural: fundings
+  # Optional. Gives "Total funded on Aug 5" rather than "Total fundings on".
+  verbPast: funded
+
+reporting:
+  # Every date range resolves to calendar dates in this zone, whatever a
+  # tenant's own timezone is. A tenant's timezone controls when a digest
+  # *fires*, never which date it *reports*.
+  timezone: America/Los_Angeles
+
+  # Floor for the `all_time` window — earlier than the first row you hold.
+  # Never shown: the query returns the tenant's real first date and the shaper
+  # substitutes that in.
+  allTimeFloor: "2019-01-01"
+
+  # Widest `last_n_days` window a report allows when it does not say.
+  defaultMaxDays: 366
+
+warehouse:
+  # snowflake — connect directly. The default, and more to get right: with no
+  #             server in front, the ROLE is your containment boundary.
+  # mcp       — go through an existing MCP server that exposes read-only SQL.
+  adapter: snowflake
+
+  snowflake:
+    account: acme-xy12345
+    # Grant this role SELECT on the analytics schema and nothing else.
+    # /almanac-connect proves by execution that it cannot write.
+    role: ALMANAC_READER
+    warehouse: ANALYTICS_WH
+    database: PRODUCTION
+    schema: ANALYTICS
+    username: ALMANAC_SVC
+    # Secret Manager entry holding the PEM private key. Key-pair, not a
+    # password: a password is replayable by anything that reads it once.
+    privateKeySecret: almanac-snowflake-key
+
+  # Used instead of `snowflake:` when adapter is `mcp`.
+  # mcp:
+  #   urlEnv: ALMANAC_MCP_URL
+  #   apiKeyEnv: ALMANAC_MCP_API_KEY
+  #   toolName: execute_sql
+
+  timeoutMs: 120000
+
+slack:
+  # Where refusals, drift and tool failures are posted. Not a tenant channel
+  # and not the ops channel.
+  errorChannelId: C00000ERRORS
+  appName: Almanac
+
+# Optional. Omit the whole block to provision by hand.
+gcp:
+  project: acme-almanac
+  region: us-west1
+  zone: us-west1-b
+  vmName: almanac-vm
+  machineType: e2-medium
+  network: almanac-vpc
+  subnet: almanac-subnet
+  releasesBucket: acme-almanac-releases
+  # Written by the VM, read by CI. Separate from releases so the
+  # customer-facing host cannot publish a release to itself.
+  statusBucket: acme-almanac-deploy-status
+  secretPrefix: almanac
+  controlUiOrigin: https://almanac-vm.your-tailnet.ts.net
+
+# Pinned, with no fallback chain. A silent fallback to a weaker model would
+# silently reduce injection resistance in a customer-facing system.
+model: anthropic/claude-sonnet-5

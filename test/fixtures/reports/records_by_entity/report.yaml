@@ -1,0 +1,14 @@
+id: records_by_entity
+title: Fundings for a business
+description: The individual fundings behind one of your businesses.
+dateRanges: [today, last_7d, last_30d, prior_month, last_n_days]
+maxDays: 366
+rowCap: 1500
+columns:
+  - { name: EVENT_DATE, label: Date, format: date }
+  - { name: RECORD_ID, label: Reference, format: id }
+  - { name: ENTITY_NAME, label: Business, format: text }
+  - { name: AMOUNT_CENTS, label: Amount, format: cents }
+totals:
+  - { name: AMOUNT_CENTS, as: amount, agg: sum }
+  - { name: RECORD_ID, as: records, agg: count_distinct }

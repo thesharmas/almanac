@@ -1,0 +1,15 @@
+# ops.yaml — the operations channel, and who may broadcast from it.
+#
+# Optional. Without this file there is no ops agent, no ops channel and no
+# announce tool: the feature is absent rather than half-present.
+#
+# THIS CHANNEL MUST BE PRIVATE. Membership is the authorisation — anyone in it
+# can broadcast to every tenant channel. That is deliberate, and it is the same
+# reasoning that makes channel membership the perimeter for tenants: one
+# control rather than two that drift apart, and adding an operator is a Slack
+# invite rather than a config change and a deploy.
+#
+# It only works because the channel is private, so the tool asks Slack on every
+# call and refuses if the channel is public. In a public channel joining is one
+# click and membership would grant nothing.
+channelId: C00000000OPS

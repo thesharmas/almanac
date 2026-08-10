@@ -1,0 +1,75 @@
+# tenants.yaml — who gets what, and when.
+#
+# Copy to `tenants.yaml`, or let `/almanac-add-tenant` write a stanza by
+# interview. The real file is gitignored: it maps your customers to your
+# channels.
+#
+# Adding a tenant is one PR: a stanza here plus, if the report is new, a
+# reports/<id>/ directory. Removing a stanza removes their access, and the
+# deploy-time reconciler deletes their scheduled jobs.
+#
+# THERE IS DELIBERATELY NO `users` KEY. Channel membership is the perimeter —
+# access is granted and revoked by adding to or removing from the Slack
+# channel, one control rather than two that drift apart. On a Slack Connect
+# channel that means the customer controls who they add, and anyone they add
+# can ask anything the channel is entitled to ask. That is the intended design,
+# but it must be a decision someone made knowingly.
+#
+# `reports` is entitlement (what they may ask for). `schedules` is what arrives
+# unprompted. A report may be entitled without being scheduled; never the
+# reverse — the build enforces this.
+
+# ---------------------------------------------------------------------------
+# Staging. Internal channels only.
+# ---------------------------------------------------------------------------
+
+# Bound to a real tenant on purpose, so this channel is an exact preview of
+# what that customer's channel will post. Sharing a tenant id is normally a
+# build failure, which is why the intent has to be stated explicitly.
+staging:
+  channelId: C00000STAGING
+  tenantId: "00000000-0000-0000-0000-000000000001"
+  displayName: Northwind Traders
+  allowSharedTenant: true
+  reports: [aggregate_by_entity, detail_by_entity]
+  schedules:
+    - id: daily_digest
+      report: aggregate_by_entity
+      dateRange: today
+      cron: "0 17 * * 1-5" # 5 PM weekdays, in the tenant's timezone
+
+# Bound to a DIFFERENT tenant, with no schedule.
+#
+# This stanza is not decoration. It is the only thing in the whole deployment
+# that demonstrates agent A cannot reach tenant B's data — and specifically,
+# it is what detects the one dangerous failure of the plugin contract: if the
+# Gateway invoked the tool factory once instead of per agent, `ctx.agentId`
+# would be pinned and every channel would see one tenant's numbers. Both
+# staging channels asking the same question and getting *different* answers is
+# the proof. /almanac-go-live runs exactly that check.
+staging_alt:
+  channelId: C00000STGALT
+  tenantId: "00000000-0000-0000-0000-000000000002"
+  displayName: Contoso Ltd
+  reports: [aggregate_by_entity, detail_by_entity]
+
+# ---------------------------------------------------------------------------
+# Tenants. Enabled only after the go-live checks pass.
+# ---------------------------------------------------------------------------
+
+# Deploying this stanza changes nothing on its own: the bot only reaches the
+# channel once it is invited, and membership is the perimeter. The invite is
+# the last step of go-live, not a precondition of the PR.
+northwind:
+  channelId: C00000NWIND
+  tenantId: "00000000-0000-0000-0000-000000000001"
+  # What they call themselves. Without it, "how much has Northwind done?" reads
+  # "Northwind" as an entity name and the drill-down finds nothing.
+  displayName: Northwind Traders
+  allowSharedTenant: true # shares its tenant with `staging`, by design
+  reports: [aggregate_by_entity, detail_by_entity]
+  schedules:
+    - id: daily_digest
+      report: aggregate_by_entity
+      dateRange: today
+      cron: "0 17 * * 1-5"

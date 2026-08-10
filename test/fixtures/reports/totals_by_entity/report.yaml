@@ -1,0 +1,15 @@
+id: totals_by_entity
+title: Totals by business
+description: How much was funded for each of your businesses over any period.
+dateRanges: [today, last_7d, last_30d, mtd, prior_month, last_n_days, all_time]
+maxDays: 366
+rowCap: 500
+columns:
+  - { name: ENTITY_NAME, label: Business, format: text }
+  - { name: ENTITY_ID, label: Business ID, format: id }
+  - { name: RECORDS, label: Fundings, format: number }
+  - { name: AMOUNT_CENTS, label: Amount, format: cents }
+totals:
+  - { name: AMOUNT_CENTS, as: amount, agg: sum }
+  - { name: RECORDS, as: records, agg: sum }
+  - { name: ENTITY_NAME, as: entities, agg: count_distinct }

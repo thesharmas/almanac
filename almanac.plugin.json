@@ -1,0 +1,15 @@
+{
+  "id": "almanac",
+  "name": "Almanac",
+  "description": "The only data path for Almanac tenant agents: closed-enum retrieval of a channel's own reports.",
+  "version": "0.1.0",
+  "main": "dist/plugin/index.js",
+  "contracts": {
+    "tools": ["run_report", "post_digest", "announce"]
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}
