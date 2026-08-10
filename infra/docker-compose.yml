@@ -1,0 +1,40 @@
+# The Gateway container.
+#
+# Port publishing is bound to 127.0.0.1 on purpose. The Gateway itself binds
+# "lan" inside the container — required, because Docker port publishing cannot
+# reach a process listening on the container's own loopback — but the host side
+# stays on loopback, so nothing is exposed to the VPC. The Control UI is
+# reached over the tailnet via `tailscale serve`, never by opening a port.
+
+services:
+  gateway:
+    # Pinned by DIGEST, written by infra/04-image.sh. Never a moving tag: an
+    # unrelated restart must not silently upgrade a customer-facing system.
+    image: ${OPENCLAW_IMAGE_DIGEST}
+    container_name: ${ALMANAC_NAME}-gateway
+    restart: unless-stopped
+    entrypoint: ["/app/infra/entrypoint.sh"]
+    environment:
+      ALMANAC_NAME: ${ALMANAC_NAME}
+      SECRET_PREFIX: ${SECRET_PREFIX}
+      WAREHOUSE_ADAPTER: ${WAREHOUSE_ADAPTER}
+      SNOWFLAKE_KEY_SECRET: ${SNOWFLAKE_KEY_SECRET:-}
+      ALMANAC_MCP_URL: ${ALMANAC_MCP_URL:-}
+      OPENCLAW_HOME: /data
+    volumes:
+      # The release bundle, read-only. The container has no business writing
+      # to the code it is running.
+      - /opt/${ALMANAC_NAME}/current:/app:ro
+      # Gateway state: sessions, SQLite, per-agent workspaces.
+      - /data:/data
+    tmpfs:
+      # Where the gateway token lands after substitution. tmpfs, so it does not
+      # survive a restart.
+      - /run/almanac
+    ports:
+      - "127.0.0.1:18789:18789"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"

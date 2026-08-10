@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll for a new {{NAME}} release every minute
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=60s
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,51 @@
+name: release
+
+# Merging to main deploys. There is no promote step, so PR REVIEW IS THE GATE —
+# which is why branch protection on main is not optional for a deployment that
+# reads production data. Require a review, require this workflow's `check` job,
+# and keep history linear.
+on:
+  push:
+    branches: [main]
+
+# Never two releases in flight: the second would publish DESIRED_VERSION while
+# the VM was mid-deploy on the first.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # For Workload Identity Federation. CI holds no long-lived key.
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # A toolkit checkout has no deployment to release.
+    if: ${{ hashFiles('deployment.yaml') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - run: npm ci
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      # build-release.sh runs the full gate itself and refuses to build if it
+      # fails, so a broken checkout cannot become a bundle even if this
+      # workflow were somehow reached without `check` having passed.
+      #
+      # CI has no access to the VM. It publishes a bundle and a
+      # DESIRED_VERSION; the host pulls.
+      - name: Build and publish
+        run: ./infra/build-release.sh "$(git rev-parse --short HEAD)"

@@ -1,0 +1,41 @@
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - run: npm ci
+
+      # lint + typecheck + tests + leak check + build + generate.
+      - run: npm run check
+
+      # `generated/` is committed so the diff is reviewable. If it does not
+      # match what the catalogs produce, someone edited it by hand or forgot to
+      # regenerate — either way the deployed config would not be the reviewed
+      # one.
+      #
+      # Skipped when there is no deployment.yaml: a toolkit checkout has
+      # nothing to generate, and `npm run generate` says so and exits clean.
+      - name: generated/ is in sync
+        run: |
+          if [ ! -f deployment.yaml ]; then
+            echo "no deployment.yaml — toolkit checkout, nothing to compare"
+            exit 0
+          fi
+          if [ -n "$(git status --porcelain generated/)" ]; then
+            echo "generated/ is out of date. Run npm run generate and commit the result."
+            git --no-pager diff generated/
+            exit 1
+          fi

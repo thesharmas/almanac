@@ -1,0 +1,9 @@
+[Unit]
+Description={{NAME}} gateway health check
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=ALMANAC_NAME={{NAME}}
+Environment=SECRET_PREFIX={{NAME}}
+ExecStart=/usr/local/bin/{{NAME}}-health

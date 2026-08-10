@@ -1,0 +1,61 @@
+# Slack app manifest.
+#
+# Create the app at https://api.slack.com/apps → "From an app manifest", paste
+# this, then replace {{BOT_NAME}} and {{DEPLOYMENT}}. /almanac-init fills them
+# in for you.
+#
+# TWO THINGS ARE LOAD-BEARING HERE.
+#
+# 1. `socket_mode_enabled: true` and NO `request_url`. Socket Mode is an
+#    outbound WebSocket, so Slack never connects inward. That is what lets the
+#    host keep no external IP and no public endpoint — the entire inbound
+#    attack surface is absent rather than defended.
+#
+# 2. The scopes below are the minimum for reading mentions and posting. In
+#    particular there is no `channels:history` — the bot sees messages that
+#    mention it, not everything said in the channel. Adding history scopes
+#    would widen what a compromised token could read to every conversation in
+#    every channel it is in.
+#
+# After creating the app: install it to the workspace, then take the bot token
+# (xoxb-) and app token (xapp-, with connections:write) into Secret Manager via
+# infra/05-secrets.sh. Do not paste them anywhere else.
+
+display_information:
+  name: "{{BOT_NAME}}"
+  description: Answers questions about your data in this channel, and posts a scheduled digest.
+  background_color: "#1f2933"
+
+features:
+  bot_user:
+    display_name: "{{BOT_NAME}}"
+    # The bot is only useful in a channel it has been invited to, and it only
+    # answers when mentioned. Presence is noise.
+    always_online: false
+
+oauth_config:
+  scopes:
+    bot:
+      # Read messages that mention the bot, in channels it is a member of.
+      - app_mentions:read
+      # Post, and post threaded replies.
+      - chat:write
+      # Read channel metadata — specifically whether the ops channel is
+      # private, which the announce tool verifies on every call rather than
+      # trusting from config.
+      - groups:read
+      - channels:read
+      # Slack Connect channels appear here rather than under channels:read.
+      - im:read
+      # Resolve a channel by name during onboarding (infra/slack-lookup.sh).
+      - users:read
+
+settings:
+  # Outbound WebSocket only. There is deliberately no request_url anywhere in
+  # this file.
+  socket_mode_enabled: true
+  event_subscriptions:
+    bot_events:
+      - app_mention
+  org_deploy_enabled: false
+  token_rotation_enabled: false

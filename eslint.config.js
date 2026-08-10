@@ -50,4 +50,18 @@ export default [
       "@typescript-eslint/no-unnecessary-condition": "off",
     },
   },
+  {
+    // Plain Node scripts under infra/. They are not part of the TypeScript
+    // program, so the parser cannot resolve `process` and `console` for them
+    // the way it does for .ts files.
+    files: ["infra/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: { process: "readonly", console: "readonly" },
+    },
+    rules: {
+      "no-console": "off",
+    },
+  },
 ];
