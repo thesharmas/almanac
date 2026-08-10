@@ -2,7 +2,7 @@
 # Resolve a Slack channel by name, or verify membership of one by id.
 #
 #   ./slack-lookup.sh channel "Northwind Traders"
-#   ./slack-lookup.sh verify C0123456789
+#   ./slack-lookup.sh verify C0000000000
 #
 # Used during onboarding, and by /almanac-add-tenant.
 #
