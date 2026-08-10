@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+.DS_Store
+
+# Real deployment config never belongs in the toolkit repo — only the examples do.
+deployment.yaml
+tenants.yaml
+ops.yaml
