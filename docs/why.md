@@ -29,6 +29,134 @@ controls below are ordered by how much they actually carry.
 
 ---
 
+## 0. Why an agent runtime, and why OpenClaw
+
+### Why a model is in the loop at all
+
+The obvious version of this product does not need one: run a query on a
+schedule, format the rows, post the message. That is a hundred lines and no
+language model.
+
+It answers exactly one question. The second question — *"which of those was
+Contoso?"*, *"and last week?"*, *"is that up or down?"* — has nowhere to go. A
+formatter has already thrown away everything it did not print, and the person
+in the channel is back to filing a ticket.
+
+**Follow-ups are the product.** The scheduled digest is the thing that gets
+people to open the channel; the ability to ask about it is why they stay. That
+requires a model holding the rows, in a thread, with the earlier answer in
+view.
+
+Once you accept that, you need somewhere for it to live: sessions, threading,
+tool dispatch, scheduling, channel routing, and — because the data is
+multi-tenant — per-tenant isolation. That collection is an agent runtime. The
+choice is not *whether* to have one but whether to write it.
+
+### The one property that decided it
+
+**`ctx.agentId`, delivered by the host on a trusted tool context.**
+
+The Gateway invokes a plugin's tool *factory* per agent and hands it a context
+carrying the agent's identity, the message channel, the sender, and the
+delivery target. None of it comes from the conversation. Nothing the customer
+types and nothing the model generates can influence it.
+
+That single affordance is what the entire isolation model rests on. Tenant
+identity arrives out of band, at the tool boundary, on every invocation — so it
+can be checked fail-closed against a generated map rather than trusted.
+
+The alternative, on a bare LLM SDK, is threading tenant identity through
+yourself. However carefully you do that, it ends up as a value some code path
+passes in — and a value that is passed in is a value that can be passed in
+wrong. Here there is nothing to pass: the tool reads `ctx.agentId` at execute
+time and refuses if it is absent or unrecognised.
+
+Everything in §1 and §2 below is downstream of that one property. If you
+replace the runtime, this is the thing the replacement has to provide.
+
+### What else it brings
+
+- **Agents and bindings are declarative config.** `agents.list` and `bindings`
+  are data, so they can be generated from a catalog, diffed in a PR, and
+  checked by a build invariant. Isolation being *config* rather than *code* is
+  what makes the lockstep check in §4 possible at all — there is something
+  concrete for it to compare.
+- **Per-agent workspace and state.** Each agent gets its own directory and its
+  own session store, so two tenants' conversations cannot collide. Reusing one
+  workspace is the sort of mistake that works fine until two channels are busy
+  at once.
+- **Tool policy is configuration.** `profile: minimal` plus explicit denies
+  (`group:fs`, `group:runtime`, `exec`, `cron`, `gateway`, session spawning)
+  appears in a reviewable diff. The alternative is auditing what a codebase
+  happens to expose, which is a thing you do once and then stop doing.
+- **Slack over Socket Mode.** An outbound WebSocket, so there is no request URL
+  and no inbound path. That is precisely what lets the host run with no
+  external IP — an entire category of exposure absent rather than defended.
+- **Threading with session seeding.** The root message and its replies land in
+  one session, which is what makes *"and last week?"* resolve against the
+  question above it rather than whatever was said in the channel most recently.
+- **Scheduled turns run through the same agent.** A digest is a cron job that
+  executes an agent turn with a prompt file, so the scheduled path and the
+  interactive path share one vocabulary, one tool set and one set of rules. A
+  number means the same thing whether it arrived on a schedule or because
+  somebody asked. Two separate code paths would drift, and the drift would show
+  up as two different answers to the same question.
+- **A plugin allowlist.** Naming the expected plugins means an unexpected
+  extension on the box does not silently join the tool registry.
+
+### What you would be rebuilding without it
+
+Channel routing, session storage and threading, tool registration and dispatch,
+scheduled execution, per-agent state isolation, a model-provider abstraction,
+and an admin surface. Most of that is ordinary work.
+
+The part you would get wrong is the trust boundary — because it is the part
+that *looks* like ordinary work. Tenant identity has to arrive from the host,
+not the conversation, and it has to be impossible for a tool to read it from
+anywhere else. That is easy to state and easy to violate by accident three
+months later when someone adds a convenience parameter.
+
+### What it costs, and what to watch
+
+- **The residual assumption in §1.** All of this depends on the factory being
+  invoked *per agent*. Verify it in your own deployment rather than assuming
+  it; `/almanac-go-live` is how.
+- **The running config schema is the authority, not the documentation.** Shapes
+  differ between versions and between docs and reality — a config that looks
+  right can be rejected outright, or worse, accepted and silently ignored. A
+  wrong Slack peer kind (`group` vs `channel`) produces a binding that *never
+  matches*, and every message in that channel falls through to the fallback
+  agent. Validate generated config against the version you actually run before
+  shipping it.
+- **The model provider is a plugin and must be named in the allowlist.**
+  Omitting it can work in one mode and fail with "unknown model" in another,
+  which makes local behavioural testing look impossible when it is one line of
+  config.
+- **Never register the warehouse under `mcp.servers`.** The runtime can do it,
+  and it would hand the model a direct SQL path around every closed enum in
+  this repo. §3.
+
+### If you swap it out
+
+Most of Almanac does not care. The catalogs, the contract checker, the calendar
+arithmetic, the shaper, the generator's invariants and the warehouse adapters
+are all runtime-agnostic — roughly everything except `src/plugin/` and
+`src/generator/artifacts.ts`.
+
+A replacement has to provide four things:
+
+1. **Agent identity at the tool boundary, from the host** — not from the
+   conversation, not from a parameter.
+2. **Declarative channel→agent binding**, so it can be generated and checked.
+3. **Per-agent state**, so sessions cannot collide across tenants.
+4. **No inbound endpoint**, or you give up the no-external-IP property.
+
+If it gives you those, the rest of this repo ports. If it gives you only the
+first three, you are still in good shape and you have a firewall conversation
+to have.
+
+---
+
 ## 1. One agent, one channel, one tenant
 
 Each tenant gets its own agent, bound 1:1 to one Slack channel. The binding is

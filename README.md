@@ -66,6 +66,13 @@ customer-facing money message gets it wrong in ways that look right.
 exactly one binding, every binding has a tenant, every schedule names a report
 its tenant is entitled to. All of it checked before anything ships.
 
+**It runs on [OpenClaw](https://github.com/openclaw/openclaw)**, and the
+deciding property was one thing: the Gateway hands a plugin the calling agent's
+identity on a trusted context, out of band from the conversation. Tenant
+identity that arrives from the host rather than from a parameter is what the
+whole isolation model rests on — [why.md §0](docs/why.md) covers what else the
+runtime brings, what it costs, and what a replacement would have to provide.
+
 All of the above, and why each part resists the obvious simplification, is in
 **[docs/why.md](docs/why.md)** — the most useful thing in this repo and the
 easiest to skip.
