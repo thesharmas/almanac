@@ -2,8 +2,16 @@ name: release
 
 # Merging to main deploys. There is no promote step, so PR REVIEW IS THE GATE —
 # which is why branch protection on main is not optional for a deployment that
-# reads production data. Require a review, require this workflow's `check` job,
-# and keep history linear.
+# reads production data. Require a review, require the `check` workflow, and
+# keep history linear.
+#
+# THIS WORKFLOW DOES NOTHING IN THE TOOLKIT REPO, BY DESIGN. Almanac is cloned
+# and filled in; `deployment.yaml` is gitignored, so a toolkit checkout has no
+# deployment to release. The gate step below detects that and skips the rest,
+# so the run goes GREEN rather than red — a permanently-failing workflow is
+# worse than no workflow, because it teaches you to ignore the Actions tab.
+#
+# It comes alive in your clone the moment `deployment.yaml` is committed.
 on:
   push:
     branches: [main]
@@ -22,30 +30,47 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # A toolkit checkout has no deployment to release.
-    if: ${{ hashFiles('deployment.yaml') != '' }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      # The gate has to run AFTER checkout. A job-level
+      # `if: hashFiles('deployment.yaml') != ''` looks equivalent and is not:
+      # it is evaluated before the workspace exists, so it has nothing to hash
+      # and the run fails with a workflow-file error rather than skipping.
+      - name: Is there a deployment to release?
+        id: gate
+        run: |
+          if [ -f deployment.yaml ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            echo "No deployment.yaml — this is a toolkit checkout, nothing to release."
+          fi
+
+      - if: steps.gate.outputs.go == 'true'
+        uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: npm
 
-      - run: npm ci
+      - if: steps.gate.outputs.go == 'true'
+        run: npm ci
 
-      - uses: google-github-actions/auth@v2
+      - if: steps.gate.outputs.go == 'true'
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - if: steps.gate.outputs.go == 'true'
+        uses: google-github-actions/setup-gcloud@v2
 
       # build-release.sh runs the full gate itself and refuses to build if it
-      # fails, so a broken checkout cannot become a bundle even if this
-      # workflow were somehow reached without `check` having passed.
+      # fails, so a broken checkout cannot become a bundle even if this workflow
+      # were somehow reached without `check` having passed.
       #
-      # CI has no access to the VM. It publishes a bundle and a
-      # DESIRED_VERSION; the host pulls.
+      # CI has no access to the VM. It publishes a bundle and a DESIRED_VERSION;
+      # the host pulls.
       - name: Build and publish
+        if: steps.gate.outputs.go == 'true'
         run: ./infra/build-release.sh "$(git rev-parse --short HEAD)"

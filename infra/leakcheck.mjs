@@ -69,8 +69,39 @@ function tracked() {
     .filter((f) => f !== "");
 }
 
+/**
+ * Files present on disk that git is ignoring, under `pathspec`.
+ *
+ * The pathspec is not a convenience: without it this enumerates every file in
+ * node_modules and overflows execFileSync's default 1 MB buffer.
+ */
+function ignored(pathspec) {
+  return execFileSync(
+    "git",
+    ["ls-files", "--others", "--ignored", "--exclude-standard", "--", pathspec],
+    { encoding: "utf8" },
+  )
+    .split("\n")
+    .filter((f) => f !== "");
+}
+
 const files = tracked();
 const problems = [];
+
+/**
+ * No test fixture may be gitignored.
+ *
+ * This check exists because the opposite happened: `.gitignore` carried a bare
+ * `tenants.yaml`, which matches at every depth, so `test/fixtures/tenants.yaml`
+ * was silently excluded. The suite passed locally against a file that had never
+ * been committed and failed on a fresh clone — the one failure mode a green
+ * local run cannot show you.
+ */
+for (const file of ignored("test/")) {
+  problems.push(
+    `${file} is gitignored but lives under test/. The suite would pass here and fail on a fresh clone — anchor the .gitignore pattern with a leading slash so it only matches the repo root.`,
+  );
+}
 
 for (const forbidden of NEVER_TRACKED) {
   if (files.includes(forbidden)) {

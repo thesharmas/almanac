@@ -1,15 +1,19 @@
 node_modules/
-dist/
 *.log
 .env
 .env.*
 .DS_Store
 
-# Real deployment config never belongs in the toolkit repo — only the examples do.
-deployment.yaml
-tenants.yaml
-ops.yaml
-
 # Build output
 dist/
 generated/
+
+# Real deployment config never belongs in the toolkit repo — only the examples do.
+#
+# ANCHORED WITH A LEADING SLASH, deliberately. A bare `tenants.yaml` matches at
+# every depth, which silently excluded test/fixtures/tenants.yaml — the tests
+# passed locally against a file that had never been committed, and CI failed on
+# a fresh clone. These three patterns must only ever match the repo root.
+/deployment.yaml
+/tenants.yaml
+/ops.yaml
